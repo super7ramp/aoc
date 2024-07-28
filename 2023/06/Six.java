@@ -36,7 +36,7 @@ private long numberOfWays(long[] times, long[] distances) {
 
 private long solutionCount(long raceTimeInMs, long minimumDistanceInMm) {
     long solutionCount = 0;
-    for (int holdDurationInMs = 1; holdDurationInMs < raceTimeInMs; holdDurationInMs++) {
+    for (long holdDurationInMs = 1; holdDurationInMs < raceTimeInMs; holdDurationInMs++) {
         final long distanceCoveredInMm = (raceTimeInMs - holdDurationInMs) * holdDurationInMs;
         if (distanceCoveredInMm > minimumDistanceInMm) {
             solutionCount++;
