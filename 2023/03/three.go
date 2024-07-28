@@ -32,24 +32,24 @@ func (ns *NumberSlot) NeighborPositions(schema *Schema) []Pos {
 	// XXXXX
 	rowCount := schema.RowCount()
 	colCount := schema.ColCount()
-	numberPositions := make([]Pos, 0)
+	neighborPositions := make([]Pos, 0)
 	if ns.rowIndex > 0 {
 		for colIndex := max(ns.colStartIndex-1, 0); colIndex <= min(ns.colEndIndex, colCount-1); colIndex++ {
-			numberPositions = append(numberPositions, Pos{rowIndex: ns.rowIndex - 1, colIndex: colIndex})
+			neighborPositions = append(neighborPositions, Pos{rowIndex: ns.rowIndex - 1, colIndex: colIndex})
 		}
 	}
 	if ns.colStartIndex > 0 {
-		numberPositions = append(numberPositions, Pos{rowIndex: ns.rowIndex, colIndex: ns.colStartIndex - 1})
+		neighborPositions = append(neighborPositions, Pos{rowIndex: ns.rowIndex, colIndex: ns.colStartIndex - 1})
 	}
 	if ns.colEndIndex < colCount-1 {
-		numberPositions = append(numberPositions, Pos{rowIndex: ns.rowIndex, colIndex: ns.colEndIndex})
+		neighborPositions = append(neighborPositions, Pos{rowIndex: ns.rowIndex, colIndex: ns.colEndIndex})
 	}
 	if ns.rowIndex < rowCount-1 {
 		for colIndex := max(ns.colStartIndex-1, 0); colIndex <= min(ns.colEndIndex, colCount-1); colIndex++ {
-			numberPositions = append(numberPositions, Pos{rowIndex: ns.rowIndex + 1, colIndex: colIndex})
+			neighborPositions = append(neighborPositions, Pos{rowIndex: ns.rowIndex + 1, colIndex: colIndex})
 		}
 	}
-	return numberPositions
+	return neighborPositions
 }
 
 func (ns *NumberSlot) HasSymbolAsNeighbor(schema *Schema) bool {
