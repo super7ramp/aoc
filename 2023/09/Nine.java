@@ -36,7 +36,7 @@ private int extrapolateNextValue(final int[] values) {
     if (Arrays.stream(differences).anyMatch(i -> i != 0)) {
         nextDifference = extrapolateNextValue(differences);
     } else {
-        nextDifference = differences[differences.length - 1];
+        nextDifference = 0;
     }
     return values[values.length - 1] + nextDifference;
 }
@@ -50,7 +50,7 @@ private int extrapolatePreviousValue(int[] values) {
     if (Arrays.stream(differences).anyMatch(i -> i != 0)) {
         previousDifference = extrapolatePreviousValue(differences);
     } else {
-        previousDifference = differences[0];
+        previousDifference = 0;
     }
     return values[0] - previousDifference;
 }
