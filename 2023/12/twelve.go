@@ -112,6 +112,21 @@ func (record *ConditionRecord) DamagedGroups() []DamagedGroup {
 	return damagedGroups
 }
 
+func (record *ConditionRecord) Unfold() ConditionRecord {
+	unfoldedStates := make([]State, 0, 5*len(record.states)+4)
+	unfoldedDamagedGroupSizes := make([]int, 0, 5*len(record.damagedGroupSizes))
+	for repeat := 0; repeat < 5; repeat++ {
+		for _, state := range record.states {
+			unfoldedStates = append(unfoldedStates, state)
+		}
+		unfoldedStates = append(unfoldedStates, Unknown)
+		for _, damagedGroupSize := range record.damagedGroupSizes {
+			unfoldedDamagedGroupSizes = append(unfoldedDamagedGroupSizes, damagedGroupSize)
+		}
+	}
+	return ConditionRecord{unfoldedStates, unfoldedDamagedGroupSizes}
+}
+
 type ConditionRecords []ConditionRecord
 
 func ConditionRecordsFrom(input string) ConditionRecords {
@@ -123,6 +138,14 @@ func ConditionRecordsFrom(input string) ConditionRecords {
 	return conditionRecords
 }
 
+func (records ConditionRecords) Unfold() ConditionRecords {
+	unfoldedConditionRecords := make(ConditionRecords, len(records))
+	for i, record := range records {
+		unfoldedConditionRecords[i] = record.Unfold()
+	}
+	return unfoldedConditionRecords
+}
+
 type Filler struct{}
 
 func NewFiller() *Filler {
@@ -130,40 +153,32 @@ func NewFiller() *Filler {
 }
 
 func (filler *Filler) Fill(record *ConditionRecord) [][]State {
-	candidates := filler.generateCandidates(record)
-	candidates = slices.DeleteFunc(candidates, func(candidate []State) bool {
-		candidateRecord := ConditionRecord{candidate, record.damagedGroupSizes}
-		return !candidateRecord.IsValid()
-	})
-	return candidates
-}
-
-func (filler *Filler) generateCandidates(record *ConditionRecord) [][]State {
 	unknownIndices := record.UnknownIndices()
 	if len(unknownIndices) == 0 {
 		return [][]State{record.states}
 	}
-	unknownIndicesFilledWithDamaged := filler.combinations(record.DamagedToFindCount(), unknownIndices)
-	candidates := make([][]State, len(unknownIndicesFilledWithDamaged))
-	for i, unknownIndexFilledWithDamaged := range unknownIndicesFilledWithDamaged {
+	solutions := make([][]State, 0)
+	filler.combinations(record.DamagedToFindCount(), unknownIndices, func(combination []int) {
 		candidate := make([]State, len(record.states))
 		copy(candidate, record.states)
 		for _, unknownIndex := range unknownIndices {
-			if slices.Contains(unknownIndexFilledWithDamaged, unknownIndex) {
+			if slices.Contains(combination, unknownIndex) {
 				candidate[unknownIndex] = Damaged
 			} else {
 				candidate[unknownIndex] = Operational
 			}
 		}
-		candidates[i] = candidate
-	}
-	return candidates
+		candidateRecord := ConditionRecord{candidate, record.damagedGroupSizes}
+		if candidateRecord.IsValid() {
+			solutions = append(solutions, candidate)
+		}
+	})
+	return solutions
 }
 
 // See https://www.baeldung.com/cs/generate-k-combinations, lexicographic generation.
 // Watch out, c indices start at 0 here.
-func (filler *Filler) combinations(k int, elements []int) [][]int {
-	result := make([][]int, 0)
+func (filler *Filler) combinations(k int, elements []int, visitCombination func([]int)) {
 
 	// Initialization
 	c := make([]int, k+2)
@@ -172,13 +187,20 @@ func (filler *Filler) combinations(k int, elements []int) [][]int {
 	}
 	c[k] = len(elements)
 	c[k+1] = 0
+	visitedCombinationCount := int64(0)
+
 	for {
 		// Visit combination
 		combination := make([]int, k)
 		for i, ci := range c[0:k] {
 			combination[i] = elements[ci]
 		}
-		result = append(result, combination)
+		visitCombination(combination)
+		visitedCombinationCount++
+		if visitedCombinationCount%1_000_000 == 0 {
+			fmt.Printf("C(%v,%v): Visited %v combinations so far\n", len(elements), k, visitedCombinationCount)
+		}
+
 		// Find j
 		j := 0
 		for c[j]+1 == c[j+1] {
@@ -195,20 +217,30 @@ func (filler *Filler) combinations(k int, elements []int) [][]int {
 		}
 	}
 
-	return result
+	fmt.Printf("C(%v,%v): Visited %v combinations\n", len(elements), k, visitedCombinationCount)
 }
 
-//go:embed input.txt
+//go:embed input-example.txt
 var input string
 
 func main() {
-	conditionsRecords := ConditionRecordsFrom(input)
 	filler := NewFiller()
+
+	conditionsRecords := ConditionRecordsFrom(input)
 	sum := 0
 	for _, record := range conditionsRecords {
 		solutions := filler.Fill(&record)
-		fmt.Printf("%v solutions for %q: %q\n", len(solutions), record.states, solutions)
+		fmt.Printf("%v solutions for %q\n", len(solutions), record.states)
 		sum += len(solutions)
 	}
-	fmt.Println("Total solution count: ", sum)
+	fmt.Println("Total solution count (par 1): ", sum)
+
+	unfoldedConditionRecords := conditionsRecords.Unfold()
+	sum = 0
+	for _, record := range unfoldedConditionRecords {
+		solutions := filler.Fill(&record)
+		fmt.Printf("%v solutions for %q\n", len(solutions), record.states)
+		sum += len(solutions)
+	}
+	fmt.Println("Total solution count (part 2): ", sum)
 }
