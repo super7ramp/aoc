@@ -1,6 +1,5 @@
 use std::cmp::min;
 
-#[derive(Debug)]
 struct Pattern {
     pattern: String,
     column_count: usize,
@@ -39,7 +38,7 @@ impl Pattern {
     }
 
     fn find_rows_of_reflections(&self) -> Vec<usize> {
-        (1..self.row_count - 1).filter(|&row_index| {
+        (1..self.row_count).filter(|&row_index| {
             let max_height = min(row_index, self.row_count - row_index) + 1;
             (1..max_height).all(|height| {
                 let top = self.line_at(row_index - height);
@@ -50,7 +49,7 @@ impl Pattern {
     }
 
     fn find_columns_of_reflections(&self) -> Vec<usize> {
-        (1..self.column_count - 1).filter(|&column_index| {
+        (1..self.column_count).filter(|&column_index| {
             let width = min(column_index, self.column_count - column_index);
             (0..self.row_count).all(|row_index| {
                 let left = &self.line_at(row_index)[column_index - width..column_index];
