@@ -119,12 +119,18 @@ func (record *ConditionRecord) Unfold() ConditionRecord {
 		for _, state := range record.states {
 			unfoldedStates = append(unfoldedStates, state)
 		}
-		unfoldedStates = append(unfoldedStates, Unknown)
+		if repeat < 4 {
+			unfoldedStates = append(unfoldedStates, Unknown)
+		}
 		for _, damagedGroupSize := range record.damagedGroupSizes {
 			unfoldedDamagedGroupSizes = append(unfoldedDamagedGroupSizes, damagedGroupSize)
 		}
 	}
 	return ConditionRecord{unfoldedStates, unfoldedDamagedGroupSizes}
+}
+
+func (record *ConditionRecord) String() string {
+	return fmt.Sprintf("%v %v", string(record.states), record.damagedGroupSizes)
 }
 
 type ConditionRecords []ConditionRecord
@@ -146,21 +152,16 @@ func (records ConditionRecords) Unfold() ConditionRecords {
 	return unfoldedConditionRecords
 }
 
-type Filler struct{}
+type NaiveFiller struct{}
 
-func NewFiller() *Filler {
-	return &Filler{}
-}
-
-func (filler *Filler) Fill(record *ConditionRecord) [][]State {
+func (filler *NaiveFiller) Fill(record *ConditionRecord) [][]State {
 	unknownIndices := record.UnknownIndices()
 	if len(unknownIndices) == 0 {
 		return [][]State{record.states}
 	}
 	solutions := make([][]State, 0)
 	filler.combinations(record.DamagedToFindCount(), unknownIndices, func(combination []int) {
-		candidate := make([]State, len(record.states))
-		copy(candidate, record.states)
+		candidate := slices.Clone(record.states)
 		for _, unknownIndex := range unknownIndices {
 			if slices.Contains(combination, unknownIndex) {
 				candidate[unknownIndex] = Damaged
@@ -178,7 +179,7 @@ func (filler *Filler) Fill(record *ConditionRecord) [][]State {
 
 // See https://www.baeldung.com/cs/generate-k-combinations, lexicographic generation.
 // Watch out, c indices start at 0 here.
-func (filler *Filler) combinations(k int, elements []int, visitCombination func([]int)) {
+func (filler *NaiveFiller) combinations(k int, elements []int, visitCombination func([]int)) {
 
 	// Initialization
 	c := make([]int, k+2)
@@ -187,7 +188,6 @@ func (filler *Filler) combinations(k int, elements []int, visitCombination func(
 	}
 	c[k] = len(elements)
 	c[k+1] = 0
-	visitedCombinationCount := int64(0)
 
 	for {
 		// Visit combination
@@ -196,10 +196,6 @@ func (filler *Filler) combinations(k int, elements []int, visitCombination func(
 			combination[i] = elements[ci]
 		}
 		visitCombination(combination)
-		visitedCombinationCount++
-		if visitedCombinationCount%1_000_000 == 0 {
-			fmt.Printf("C(%v,%v): Visited %v combinations so far\n", len(elements), k, visitedCombinationCount)
-		}
 
 		// Find j
 		j := 0
@@ -216,31 +212,117 @@ func (filler *Filler) combinations(k int, elements []int, visitCombination func(
 			break
 		}
 	}
-
-	fmt.Printf("C(%v,%v): Visited %v combinations\n", len(elements), k, visitedCombinationCount)
 }
 
-//go:embed input-example.txt
+type LessNaiveFillCounter struct {
+	cache map[string]int64
+}
+
+func NewLessNaiveFillCounter() *LessNaiveFillCounter {
+	return &LessNaiveFillCounter{cache: make(map[string]int64)}
+}
+
+func (filler *LessNaiveFillCounter) CountFills(record *ConditionRecord) int64 {
+
+	if cachedCount, ok := filler.cache[record.String()]; ok {
+		return cachedCount
+	}
+
+	groupSizes := record.damagedGroupSizes
+	states := record.states
+
+	if len(groupSizes) == 0 {
+		candidate := slices.Clone(states)
+		for i, s := range candidate {
+			if s == Damaged {
+				return 0
+			}
+			candidate[i] = Operational
+		}
+		return 1
+	}
+
+	if filler.requiredSpace(groupSizes) > len(states) {
+		return 0
+	}
+
+	candidate := make([]State, len(states))
+	groupSize := groupSizes[0]
+	count := int64(0)
+
+outer:
+	for groupStartIndex := 0; groupStartIndex < len(states)-groupSize+1; groupStartIndex++ {
+		copy(candidate, states)
+		for beforeStartIndex := 0; beforeStartIndex < groupStartIndex; beforeStartIndex++ {
+			if candidate[beforeStartIndex] == Damaged {
+				continue outer
+			}
+			candidate[beforeStartIndex] = Operational
+		}
+		for indexInGroup := 0; indexInGroup < groupSize; indexInGroup++ {
+			if candidate[groupStartIndex+indexInGroup] == Operational {
+				continue outer
+			}
+			candidate[groupStartIndex+indexInGroup] = Damaged
+		}
+		groupSeparatorIndex := groupStartIndex + groupSize
+		if len(candidate) > groupSeparatorIndex {
+			if candidate[groupSeparatorIndex] == Damaged {
+				continue
+			}
+			candidate[groupSeparatorIndex] = Operational
+		}
+		if len(candidate) > groupSeparatorIndex+1 {
+			subRecord := &ConditionRecord{candidate[groupSeparatorIndex+1:], groupSizes[1:]}
+			count += filler.CountFills(subRecord)
+		} else if len(groupSizes) == 1 {
+			count++
+		}
+	}
+
+	filler.cache[record.String()] = count
+	return count
+}
+
+func (filler *LessNaiveFillCounter) requiredSpace(groupSizes []int) int {
+	count := 0
+	for _, groupSize := range groupSizes {
+		count += groupSize
+	}
+	count += len(groupSizes) - 1
+	return count
+}
+
+//go:embed input.txt
 var input string
 
 func main() {
-	filler := NewFiller()
-
 	conditionsRecords := ConditionRecordsFrom(input)
-	sum := 0
+	filler := NaiveFiller{}
+	sum := int64(0)
 	for _, record := range conditionsRecords {
 		solutions := filler.Fill(&record)
 		fmt.Printf("%v solutions for %q\n", len(solutions), record.states)
-		sum += len(solutions)
+		sum += int64(len(solutions))
 	}
-	fmt.Println("Total solution count (par 1): ", sum)
+	fmt.Println("Total solution count (part 1, naive filler): ", sum)
 
-	unfoldedConditionRecords := conditionsRecords.Unfold()
+	fillCounter := NewLessNaiveFillCounter()
 	sum = 0
-	for _, record := range unfoldedConditionRecords {
-		solutions := filler.Fill(&record)
-		fmt.Printf("%v solutions for %q\n", len(solutions), record.states)
-		sum += len(solutions)
+	for _, record := range conditionsRecords {
+		count := fillCounter.CountFills(&record)
+		fmt.Printf("%v solutions for %q\n", count, record.states)
+		sum += count
 	}
-	fmt.Println("Total solution count (part 2): ", sum)
+	fmt.Println("Total solution count (part 1, less naive fill counter): ", sum)
+
+	sum = 0
+	conditionsRecords = conditionsRecords.Unfold()
+	for _, record := range conditionsRecords {
+		count := fillCounter.CountFills(&record)
+		fmt.Printf("%v solutions for %q\n", count, record.states)
+		sum += count
+	}
+	fmt.Println("Total solution count (part 2, less naive fill counter): ", sum)
+
 }
