@@ -7,7 +7,6 @@ struct Pattern {
 }
 
 impl Pattern {
-
     fn new(pattern: String, column_count: usize, row_count: usize) -> Pattern {
         Pattern {
             pattern,
@@ -24,20 +23,27 @@ impl Pattern {
         Pattern::new(pattern, column_count, row_count)
     }
 
-    pub fn score(&self) -> usize {
-        let rows_of_reflection = self.find_rows_of_reflections();
-        let columns_of_reflection = self.find_columns_of_reflections();
-
-        let row_score = rows_of_reflection.iter()
+    pub fn score(&self) -> (usize, usize) {
+        let reflection_rows = self.reflection_rows();
+        let reflection_columns = self.reflection_columns();
+        let row_score = reflection_rows.iter()
             .map(|row_above_count| row_above_count * 100)
             .sum::<usize>();
+        let column_score = reflection_columns.iter().sum::<usize>();
+        let score_part_1 = row_score + column_score;
 
-        let column_score = columns_of_reflection.iter().sum::<usize>();
+        let (smudged_reflection_rows, smudged_reflection_columns) =
+            self.smudged_reflections(reflection_rows, reflection_columns);
+        let smudged_row_score = smudged_reflection_rows.iter()
+            .map(|row_above_count| row_above_count * 100)
+            .sum::<usize>();
+        let smudged_column_score = smudged_reflection_columns.iter().sum::<usize>();
+        let score_part_2 = smudged_row_score + smudged_column_score;
 
-        row_score + column_score
+        (score_part_1, score_part_2)
     }
 
-    fn find_rows_of_reflections(&self) -> Vec<usize> {
+    fn reflection_rows(&self) -> Vec<usize> {
         (1..self.row_count).filter(|&row_index| {
             let max_height = min(row_index, self.row_count - row_index) + 1;
             (1..max_height).all(|height| {
@@ -48,7 +54,7 @@ impl Pattern {
         }).collect::<Vec<usize>>()
     }
 
-    fn find_columns_of_reflections(&self) -> Vec<usize> {
+    fn reflection_columns(&self) -> Vec<usize> {
         (1..self.column_count).filter(|&column_index| {
             let width = min(column_index, self.column_count - column_index);
             (0..self.row_count).all(|row_index| {
@@ -69,6 +75,36 @@ impl Pattern {
     fn index_of(&self, row: usize, column: usize) -> usize {
         row * (self.column_count + 1 /* newline */) + column
     }
+
+    fn smudged_reflections(&self, original_rows: Vec<usize>, original_columns: Vec<usize>) -> (Vec<usize>, Vec<usize>) {
+        for row_index in 0..self.row_count {
+            for column_index in 0..self.column_count {
+                let mut new_pattern = self.pattern.clone();
+                let index = self.index_of(row_index, column_index);
+                let character = new_pattern.chars().nth(index).unwrap();
+                if character == '#' {
+                    new_pattern.replace_range(index..index + 1, ".");
+                } else {
+                    new_pattern.replace_range(index..index + 1, "#");
+                }
+
+                let smudged_pattern = Pattern::new(new_pattern, self.column_count, self.row_count);
+                let rows = smudged_pattern.reflection_rows()
+                    .into_iter()
+                    .filter(|row| !original_rows.contains(row))
+                    .collect::<Vec<usize>>();
+                let columns = smudged_pattern.reflection_columns()
+                    .into_iter()
+                    .filter(|row| !original_columns.contains(row))
+                    .collect::<Vec<usize>>();
+
+                if !rows.is_empty() || !columns.is_empty() {
+                    return (rows, columns);
+                }
+            }
+        }
+        return (vec![], vec![]);
+    }
 }
 
 fn main() {
@@ -76,8 +112,10 @@ fn main() {
         .map(Pattern::from)
         .collect::<Vec<Pattern>>();
 
-    let total_score = patterns.iter()
+    let (total_score_part_1, total_score_part_2) = patterns.iter()
         .map(Pattern::score)
-        .sum::<usize>();
-    println!("Total score: {total_score}");
+        .reduce(|(acc_row, acc_column), (row, column)| (acc_row + row, acc_column + column))
+        .unwrap();
+    println!("Total score (part 1): {total_score_part_1}");
+    println!("Total score (part 2): {total_score_part_2}");
 }
