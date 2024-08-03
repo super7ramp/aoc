@@ -108,7 +108,7 @@ impl Pattern {
 }
 
 fn main() {
-    let patterns = include_str!("../../input.txt").split("\n\n")
+    let patterns = include_str!("input.txt").split("\n\n")
         .map(Pattern::from)
         .collect::<Vec<Pattern>>();
 
