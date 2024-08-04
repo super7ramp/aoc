@@ -1,5 +1,7 @@
+use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
+#[derive(Eq, Hash, PartialEq, Clone)]
 enum Item {
     RoundedRock,
     CubeShapedRock,
@@ -72,6 +74,51 @@ impl Platform {
         }
     }
 
+    pub fn tilt_west(&mut self) {
+        for column in 1..self.column_count {
+            for row in 0..self.row_count {
+                if let Some(Item::RoundedRock) = self.item_at(column, row) {
+                    let mut destination_column = column;
+                    while let Some(Item::Empty) = self.item_at(destination_column - 1, row) {
+                        destination_column -= 1;
+                        if destination_column == 0 {
+                            break;
+                        }
+                    }
+                    self.swap(column, row, destination_column, row);
+                }
+            }
+        }
+    }
+
+    pub fn tilt_south(&mut self) {
+        for row in (0..self.row_count).rev() {
+            for column in 0..self.column_count {
+                if let Some(Item::RoundedRock) = self.item_at(column, row) {
+                    let mut destination_row = row;
+                    while let Some(Item::Empty) = self.item_at(column, destination_row + 1) {
+                        destination_row += 1;
+                    }
+                    self.swap(column, row, column, destination_row);
+                }
+            }
+        }
+    }
+
+    pub fn tilt_east(&mut self) {
+        for column in (0..self.column_count).rev() {
+            for row in 0..self.row_count {
+                if let Some(Item::RoundedRock) = self.item_at(column, row) {
+                    let mut destination_column = column;
+                    while let Some(Item::Empty) = self.item_at(destination_column + 1, row) {
+                        destination_column += 1;
+                    }
+                    self.swap(column, row, destination_column, row);
+                }
+            }
+        }
+    }
+
     fn item_at(&self, column: usize, row: usize) -> Option<&Item> {
         self.data.get(self.to_index(column, row))
     }
@@ -95,12 +142,34 @@ impl Platform {
             .sum()
     }
 
+    fn row_and_row_below_count(&self, index: usize) -> usize {
+        self.row_count - self.row_number(index)
+    }
+
     fn row_number(&self, index: usize) -> usize {
         index / self.column_count
     }
 
-    fn row_and_row_below_count(&self, index: usize) -> usize {
-        self.row_count - self.row_number(index)
+    pub fn n_tilt_cycles(&mut self, n: usize) {
+        let mut tilt_cache = HashMap::new();
+        let mut i = 0;
+        while i < n {
+            if let Some(previous_occurrence) = tilt_cache.get(&self.data) {
+                let loop_length = i - previous_occurrence;
+                println!("Detected same occurrence at cycle {i} as at cycle {previous_occurrence}");
+                println!("Loop is {loop_length}-long");
+                i = n - ((n - previous_occurrence) % loop_length);
+                println!("Short-circuited to cycle {}", i);
+                tilt_cache.clear();
+                continue;
+            }
+            tilt_cache.insert(self.data.clone(), i);
+            self.tilt_north();
+            self.tilt_west();
+            self.tilt_south();
+            self.tilt_east();
+            i += 1;
+        }
     }
 }
 
@@ -117,12 +186,36 @@ impl Display for Platform {
 }
 
 fn main() {
-    let mut platform = Platform::from(include_str!("../../input.txt"));
+    let mut platform = Platform::from(include_str!("../../input-example.txt"));
     println!("{platform}");
+    println!("Initial load: {}", platform.load());
 
     println!("Tilting north");
     platform.tilt_north();
     println!("{platform}");
+    println!("Load: {}", platform.load());
 
+    println!("Tilting west");
+    platform.tilt_west();
+    println!("{platform}");
+    
+    println!("Tilting south");
+    platform.tilt_south();
+    println!("{platform}");
+
+    println!("Tilting east");
+    platform.tilt_east();
+    println!("{platform}");
+
+    println!("Load: {}", platform.load());
+
+    println!("Performing 2 other cycles");
+    platform.n_tilt_cycles(2);
+    println!("{platform}");
+    println!("Load: {}", platform.load());
+
+    println!("Performing 999 999 997 other cycles");
+    platform.n_tilt_cycles(999_999_997);
+    println!("{platform}");
     println!("Load: {}", platform.load());
 }
