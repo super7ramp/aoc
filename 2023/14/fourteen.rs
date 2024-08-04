@@ -189,7 +189,7 @@ impl Display for Platform {
 }
 
 fn main() {
-    let mut platform = Platform::from(include_str!("../../input.txt"));
+    let mut platform = Platform::from(include_str!("input.txt"));
     println!("{platform}");
     println!("Initial load: {}", platform.load());
 
