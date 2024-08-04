@@ -106,7 +106,7 @@ impl Platform {
     }
 
     pub fn tilt_east(&mut self) {
-        for column in (0..self.column_count).rev() {
+        for column in (0..self.column_count - 1).rev() {
             for row in 0..self.row_count {
                 if let Some(Item::RoundedRock) = self.item_at(column, row) {
                     let mut destination_column = column;
@@ -120,6 +120,9 @@ impl Platform {
     }
 
     fn item_at(&self, column: usize, row: usize) -> Option<&Item> {
+        if column >= self.column_count {
+            return None;
+        }
         self.data.get(self.to_index(column, row))
     }
 
@@ -186,7 +189,7 @@ impl Display for Platform {
 }
 
 fn main() {
-    let mut platform = Platform::from(include_str!("../../input-example.txt"));
+    let mut platform = Platform::from(include_str!("../../input.txt"));
     println!("{platform}");
     println!("Initial load: {}", platform.load());
 
@@ -198,7 +201,7 @@ fn main() {
     println!("Tilting west");
     platform.tilt_west();
     println!("{platform}");
-    
+
     println!("Tilting south");
     platform.tilt_south();
     println!("{platform}");
