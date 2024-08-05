@@ -4,9 +4,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Stream;
 
-import static java.util.Comparator.comparingInt;
 import static java.util.function.Predicate.not;
-import static java.util.stream.Collectors.toSet;
 
 enum Direction {
     NORTH,
@@ -16,18 +14,58 @@ enum Direction {
 }
 
 enum Element {
-    EMPTY('.'),
-    SPLITTER_NS('|'),
-    SPLITTER_WE('-'),
-    MIRROR_ES_NW('\\'),
-    MIRROR_EN_SW('/');
+    EMPTY('.', deflectionMapOf(
+            Direction.NORTH, EnumSet.of(Direction.NORTH),
+            Direction.EAST, EnumSet.of(Direction.EAST),
+            Direction.SOUTH, EnumSet.of(Direction.SOUTH),
+            Direction.WEST, EnumSet.of(Direction.WEST))),
+    SPLITTER_NS('|', deflectionMapOf(
+            Direction.NORTH, EnumSet.of(Direction.NORTH),
+            Direction.EAST, EnumSet.of(Direction.NORTH, Direction.SOUTH),
+            Direction.SOUTH, EnumSet.of(Direction.SOUTH),
+            Direction.WEST, EnumSet.of(Direction.NORTH, Direction.SOUTH)
+    )),
+    SPLITTER_WE('-', deflectionMapOf(
+            Direction.NORTH, EnumSet.of(Direction.WEST, Direction.EAST),
+            Direction.EAST, EnumSet.of(Direction.EAST),
+            Direction.SOUTH, EnumSet.of(Direction.WEST, Direction.EAST),
+            Direction.WEST, EnumSet.of(Direction.WEST)
+    )),
+    MIRROR_ES_NW('\\', deflectionMapOf(
+            Direction.NORTH, EnumSet.of(Direction.WEST),
+            Direction.EAST, EnumSet.of(Direction.SOUTH),
+            Direction.SOUTH, EnumSet.of(Direction.EAST),
+            Direction.WEST, EnumSet.of(Direction.NORTH)
+    )),
+    MIRROR_EN_SW('/', deflectionMapOf(
+            Direction.NORTH, EnumSet.of(Direction.EAST),
+            Direction.EAST, EnumSet.of(Direction.NORTH),
+            Direction.SOUTH, EnumSet.of(Direction.WEST),
+            Direction.WEST, EnumSet.of(Direction.SOUTH)
+    ));
 
     private static final Element[] CACHED_VALUES = values();
 
+    private final Map<Direction, Set<Direction>> deflections;
+
     private final char symbol;
 
-    Element(final char symbol) {
+    Element(final char symbol, final Map<Direction, Set<Direction>> deflections) {
         this.symbol = symbol;
+        this.deflections = deflections;
+    }
+
+    private static <V> Map<Direction, V> deflectionMapOf(
+            final Direction k1, final V v1,
+            final Direction k2, final V v2,
+            final Direction k3, final V v3,
+            final Direction k4, final V v4) {
+        final var map = new EnumMap<Direction, V>(Direction.class);
+        map.put(k1, v1);
+        map.put(k2, v2);
+        map.put(k3, v3);
+        map.put(k4, v4);
+        return map;
     }
 
     static Element valueOf(final char symbol) {
@@ -37,30 +75,8 @@ enum Element {
                 .orElseThrow();
     }
 
-    Set<Direction> deviateBeamGoingTo(final Direction direction) {
-        return switch (this) {
-            case EMPTY -> Set.of(direction);
-            case MIRROR_ES_NW -> switch (direction) {
-                case NORTH -> Set.of(Direction.WEST);
-                case SOUTH -> Set.of(Direction.EAST);
-                case EAST -> Set.of(Direction.SOUTH);
-                case WEST -> Set.of(Direction.NORTH);
-            };
-            case MIRROR_EN_SW -> switch (direction) {
-                case NORTH -> Set.of(Direction.EAST);
-                case SOUTH -> Set.of(Direction.WEST);
-                case EAST -> Set.of(Direction.NORTH);
-                case WEST -> Set.of(Direction.SOUTH);
-            };
-            case SPLITTER_NS -> switch (direction) {
-                case EAST, WEST -> Set.of(Direction.NORTH, Direction.SOUTH);
-                case NORTH, SOUTH -> Set.of(direction);
-            };
-            case SPLITTER_WE -> switch (direction) {
-                case NORTH, SOUTH -> Set.of(Direction.EAST, Direction.WEST);
-                case WEST, EAST -> Set.of(direction);
-            };
-        };
+    Set<Direction> deflectBeamGoingTo(final Direction direction) {
+        return deflections.get(direction);
     }
 }
 
@@ -88,7 +104,7 @@ static class Contraption {
 
         Stream<BeamPart> nextParts() {
             return elementAt(position)
-                    .deviateBeamGoingTo(direction).stream()
+                    .deflectBeamGoingTo(direction).stream()
                     .map(newDirection -> new BeamPart(position.to(newDirection), newDirection))
                     .filter(beamPart -> contains(beamPart.position));
         }
@@ -135,7 +151,7 @@ static class Contraption {
         return elements[0].length;
     }
 
-    Set<Position> maximalEnergizedPositions() {
+    int maximalEnergizedPositionsCount() {
         final List<BeamPart> startPositions = new ArrayList<>();
         for (int column = 0; column < columnCount(); column++) {
             startPositions.add(new BeamPart(new Position(0, column), Direction.SOUTH));
@@ -150,18 +166,17 @@ static class Contraption {
             startPositions.add(new BeamPart(new Position(row, columnCount() - 1), Direction.WEST));
         }
         return startPositions.parallelStream()
-                .map(this::energizedPositions)
-                .max(comparingInt(Set::size))
-                .orElseGet(Set::of);
+                .mapToInt(this::energizedPositionsCount)
+                .max()
+                .orElse(0);
     }
 
-    Set<Position> energizedPositions() {
-        return energizedPositions(new BeamPart(new Position(0, 0), Direction.EAST));
+    int energizedPositionsCount() {
+        return energizedPositionsCount(new BeamPart(new Position(0, 0), Direction.EAST));
     }
 
-    Set<Position> energizedPositions(final BeamPart start) {
+    int energizedPositionsCount(final BeamPart start) {
         final var beam = new HashSet<BeamPart>();
-
         var currentBeamParts = List.of(start);
         while (!currentBeamParts.isEmpty()) {
             beam.addAll(currentBeamParts);
@@ -170,8 +185,7 @@ static class Contraption {
                     .filter(not(beam::contains))
                     .toList();
         }
-
-        return beam.stream().map(beamPart -> beamPart.position).collect(toSet());
+        return beam.size();
     }
 
     private Element elementAt(final Position position) {
@@ -188,12 +202,12 @@ void main() throws IOException {
     final var input = Files.readString(Path.of("input.txt"));
     final var contraption = Contraption.valueOf(input);
 
-    final Set<Position> energizedPositions = contraption.energizedPositions();
-    System.out.println(energizedPositions.size() + " energized positions (part 1)");
+    final int energizedPositionsCount = contraption.energizedPositionsCount();
+    System.out.println(energizedPositionsCount + " energized positions (part 1)");
 
     final long beforeInMs = System.currentTimeMillis();
-    final Set<Position> maximalEnergizedPositions = contraption.maximalEnergizedPositions();
+    final int maximalEnergizedPositionsCount = contraption.maximalEnergizedPositionsCount();
     final long afterInMs = System.currentTimeMillis();
-    System.out.println(maximalEnergizedPositions.size() + " energized positions maximum (part 2)");
-    System.out.println("Execution time: " + (afterInMs - beforeInMs) + " ms");
+    System.out.println(maximalEnergizedPositionsCount + " energized positions maximum (part 2)");
+    System.out.println("Part 2 execution time: " + (afterInMs - beforeInMs) + " ms");
 }
