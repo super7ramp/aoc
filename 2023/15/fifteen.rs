@@ -143,7 +143,7 @@ fn hash(input: &str) -> u32 {
 }
 
 fn main() {
-    let input = include_str!("../../input.txt");
+    let input = include_str!("input.txt");
     let hash_sum = input.split(',').map(hash).sum::<u32>();
     println!("Hash sum: {hash_sum}");
 
