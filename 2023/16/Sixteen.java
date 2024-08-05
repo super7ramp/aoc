@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Stream;
 
 import static java.util.Comparator.comparingInt;
 import static java.util.function.Predicate.not;
@@ -85,12 +86,11 @@ static class Contraption {
             this.direction = direction;
         }
 
-        Set<BeamPart> next() {
+        Stream<BeamPart> nextParts() {
             return elementAt(position)
                     .deviateBeamGoingTo(direction).stream()
                     .map(newDirection -> new BeamPart(position.to(newDirection), newDirection))
-                    .filter(beamPart -> Contraption.this.contains(beamPart.position))
-                    .collect(toSet());
+                    .filter(beamPart -> contains(beamPart.position));
         }
 
         @Override
@@ -149,7 +149,7 @@ static class Contraption {
         for (int row = 0; row < rowCount(); row++) {
             startPositions.add(new BeamPart(new Position(row, columnCount() - 1), Direction.WEST));
         }
-        return startPositions.stream()
+        return startPositions.parallelStream()
                 .map(this::energizedPositions)
                 .max(comparingInt(Set::size))
                 .orElseGet(Set::of);
@@ -162,13 +162,13 @@ static class Contraption {
     Set<Position> energizedPositions(final BeamPart start) {
         final var beam = new HashSet<BeamPart>();
 
-        var currentBeamParts = Set.of(start);
+        var currentBeamParts = List.of(start);
         while (!currentBeamParts.isEmpty()) {
             beam.addAll(currentBeamParts);
             currentBeamParts = currentBeamParts.stream()
-                    .flatMap(beamPart -> beamPart.next().stream())
+                    .flatMap(BeamPart::nextParts)
                     .filter(not(beam::contains))
-                    .collect(toSet());
+                    .toList();
         }
 
         return beam.stream().map(beamPart -> beamPart.position).collect(toSet());
@@ -191,6 +191,9 @@ void main() throws IOException {
     final Set<Position> energizedPositions = contraption.energizedPositions();
     System.out.println(energizedPositions.size() + " energized positions (part 1)");
 
+    final long beforeInMs = System.currentTimeMillis();
     final Set<Position> maximalEnergizedPositions = contraption.maximalEnergizedPositions();
+    final long afterInMs = System.currentTimeMillis();
     System.out.println(maximalEnergizedPositions.size() + " energized positions maximum (part 2)");
+    System.out.println("Execution time: " + (afterInMs - beforeInMs) + " ms");
 }
