@@ -1,11 +1,9 @@
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
+import static java.util.Comparator.comparingInt;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.toSet;
 
@@ -36,10 +34,6 @@ enum Element {
                 .filter(element -> element.symbol == symbol)
                 .findFirst()
                 .orElseThrow();
-    }
-
-    char symbol() {
-        return symbol;
     }
 
     Set<Direction> deviateBeamGoingTo(final Direction direction) {
@@ -141,10 +135,34 @@ static class Contraption {
         return elements[0].length;
     }
 
+    Set<Position> maximalEnergizedPositions() {
+        final List<BeamPart> startPositions = new ArrayList<>();
+        for (int column = 0; column < columnCount(); column++) {
+            startPositions.add(new BeamPart(new Position(0, column), Direction.SOUTH));
+        }
+        for (int row = 0; row < rowCount(); row++) {
+            startPositions.add(new BeamPart(new Position(row, 0), Direction.EAST));
+        }
+        for (int column = 0; column < columnCount(); column++) {
+            startPositions.add(new BeamPart(new Position(rowCount() - 1, column), Direction.NORTH));
+        }
+        for (int row = 0; row < rowCount(); row++) {
+            startPositions.add(new BeamPart(new Position(row, columnCount() - 1), Direction.WEST));
+        }
+        return startPositions.stream()
+                .map(this::energizedPositions)
+                .max(comparingInt(Set::size))
+                .orElseGet(Set::of);
+    }
+
     Set<Position> energizedPositions() {
+        return energizedPositions(new BeamPart(new Position(0, 0), Direction.EAST));
+    }
+
+    Set<Position> energizedPositions(final BeamPart start) {
         final var beam = new HashSet<BeamPart>();
 
-        var currentBeamParts = Set.of(new BeamPart(new Position(0, 0), Direction.EAST));
+        var currentBeamParts = Set.of(start);
         while (!currentBeamParts.isEmpty()) {
             beam.addAll(currentBeamParts);
             currentBeamParts = currentBeamParts.stream()
@@ -164,23 +182,15 @@ static class Contraption {
         return position.row() >= 0 && position.row() < rowCount() &&
                 position.column() >= 0 && position.column() < columnCount();
     }
-
-    @Override
-    public String toString() {
-        final var sb = new StringBuilder();
-        for (final var row : elements) {
-            for (final var element : row) {
-                sb.append(element.symbol());
-            }
-            sb.append('\n');
-        }
-        return sb.toString();
-    }
 }
 
 void main() throws IOException {
     final var input = Files.readString(Path.of("input.txt"));
     final var contraption = Contraption.valueOf(input);
+
     final Set<Position> energizedPositions = contraption.energizedPositions();
-    System.out.println(energizedPositions.size() + " energized positions");
+    System.out.println(energizedPositions.size() + " energized positions (part 1)");
+
+    final Set<Position> maximalEnergizedPositions = contraption.maximalEnergizedPositions();
+    System.out.println(maximalEnergizedPositions.size() + " energized positions maximum (part 2)");
 }
