@@ -42,7 +42,7 @@ enum Element {
         return symbol;
     }
 
-    Set<Direction> deviateBeamComingFrom(final Direction direction) {
+    Set<Direction> deviateBeamGoingTo(final Direction direction) {
         return switch (this) {
             case EMPTY -> Set.of(direction);
             case MIRROR_ES_NW -> switch (direction) {
@@ -93,7 +93,7 @@ static class Contraption {
 
         Set<BeamPart> next() {
             return elementAt(position)
-                    .deviateBeamComingFrom(direction).stream()
+                    .deviateBeamGoingTo(direction).stream()
                     .map(newDirection -> new BeamPart(position.to(newDirection), newDirection))
                     .filter(beamPart -> Contraption.this.contains(beamPart.position))
                     .collect(toSet());
