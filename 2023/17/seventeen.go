@@ -31,11 +31,9 @@ func abs(x int) int {
 	return x
 }
 
-type PuzzleMap struct {
-	heatLosses [][]int
-}
+type HeatLossMap [][]int
 
-func NewPuzzleMap(input string) *PuzzleMap {
+func NewPuzzleMap(input string) HeatLossMap {
 	rows := strings.Split(input, "\n")
 	rowCount := len(rows)
 	columnCount := len(rows[0])
@@ -49,36 +47,36 @@ func NewPuzzleMap(input string) *PuzzleMap {
 		}
 	}
 
-	return &PuzzleMap{heatLosses}
+	return heatLosses
 }
 
-func (puzzleMap *PuzzleMap) NeighborsOf(position Position) []Position {
+func (heatLossMap *HeatLossMap) NeighborsOf(position Position) []Position {
 	neighbors := make([]Position, 0)
 	if position.row > 0 {
 		neighbors = append(neighbors, Pos(position.column, position.row-1))
 	}
-	if position.row < puzzleMap.RowCount()-1 {
+	if position.row < heatLossMap.RowCount()-1 {
 		neighbors = append(neighbors, Pos(position.column, position.row+1))
 	}
 	if position.column > 0 {
 		neighbors = append(neighbors, Pos(position.column-1, position.row))
 	}
-	if position.column < puzzleMap.ColumnCount()-1 {
+	if position.column < heatLossMap.ColumnCount()-1 {
 		neighbors = append(neighbors, Pos(position.column+1, position.row))
 	}
 	return neighbors
 }
 
-func (puzzleMap *PuzzleMap) Contains(position Position) bool {
-	return position.row < puzzleMap.RowCount() && position.column < puzzleMap.ColumnCount()
+func (heatLossMap *HeatLossMap) Contains(position Position) bool {
+	return position.row < heatLossMap.RowCount() && position.column < heatLossMap.ColumnCount()
 }
 
-func (puzzleMap *PuzzleMap) RowCount() int {
-	return len(puzzleMap.heatLosses)
+func (heatLossMap *HeatLossMap) RowCount() int {
+	return len(*heatLossMap)
 }
 
-func (puzzleMap *PuzzleMap) ColumnCount() int {
-	return len(puzzleMap.heatLosses[0])
+func (heatLossMap *HeatLossMap) ColumnCount() int {
+	return len((*heatLossMap)[0])
 }
 
 type NodeStatus struct {
@@ -88,12 +86,12 @@ type NodeStatus struct {
 }
 
 type DijsktraBasedShortestPathFinder struct {
-	puzzleMap *PuzzleMap
-	statuses  map[Position]*NodeStatus
-	current   Position
+	heatLossMap HeatLossMap
+	statuses    map[Position]*NodeStatus
+	current     Position
 }
 
-func NewDijsktraBasedShortestPathFinder(graph *PuzzleMap) *DijsktraBasedShortestPathFinder {
+func NewDijsktraBasedShortestPathFinder(graph HeatLossMap) *DijsktraBasedShortestPathFinder {
 	statuses := make(map[Position]*NodeStatus)
 	current := Position{}
 	return &DijsktraBasedShortestPathFinder{graph, statuses, current}
@@ -123,7 +121,7 @@ func (finder *DijsktraBasedShortestPathFinder) PathWithMinimalHeatLoss(from, to 
 }
 
 func (finder *DijsktraBasedShortestPathFinder) updateNeighborCumulatedHeatLoss(neighbor Position) {
-	heatLossFromCurrent := finder.status(finder.current).cumulatedHeatLoss + finder.puzzleMap.heatLosses[neighbor.row][neighbor.column]
+	heatLossFromCurrent := finder.status(finder.current).cumulatedHeatLoss + finder.heatLossMap[neighbor.row][neighbor.column]
 	neighborStatus := finder.status(neighbor)
 	if heatLossFromCurrent < neighborStatus.cumulatedHeatLoss {
 		neighborStatus.cumulatedHeatLoss = heatLossFromCurrent
@@ -132,7 +130,7 @@ func (finder *DijsktraBasedShortestPathFinder) updateNeighborCumulatedHeatLoss(n
 }
 
 func (finder *DijsktraBasedShortestPathFinder) nonVisitedNeighbors() []Position {
-	neighbors := finder.puzzleMap.NeighborsOf(finder.current)
+	neighbors := finder.heatLossMap.NeighborsOf(finder.current)
 	slices.DeleteFunc(neighbors, func(position Position) bool {
 		return finder.hasVisited(position) || finder.lastFourPositionsAlignedWith(position)
 	})
