@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-//go:embed input-example.txt
+//go:embed input.txt
 var input string
 
 func main() {
@@ -21,7 +21,6 @@ func main() {
 	part2Reports := slices.Clone(reports)
 	part2Reports = slices.DeleteFunc(part2Reports, isReportUnsafeWithToleranceOfOne)
 	fmt.Printf("Part 2: %v safe report(s): %q\n", len(part2Reports), part2Reports)
-
 }
 
 func isReportUnsafeWithoutTolerance(report string) bool {
@@ -61,7 +60,8 @@ func isReportSafe(report string, tolerance int) bool {
 
 	if !safe && tolerance > 0 {
 		reportWithoutFirstLevel := report[len(levels[0])+1:]
-		return isReportSafe(reportWithoutFirstLevel, tolerance-1)
+		reportWithoutSecondLevel := report[:len(levels[0])+1] + report[len(levels[0])+1+len(levels[1])+1:]
+		safe = isReportSafe(reportWithoutFirstLevel, tolerance-1) || isReportSafe(reportWithoutSecondLevel, tolerance-1)
 	}
 
 	return safe
