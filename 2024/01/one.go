@@ -13,6 +13,8 @@ var input string
 
 func main() {
 	column1, column2 := columns()
+
+	// Part 1
 	slices.Sort(column1)
 	slices.Sort(column2)
 	fmt.Println("Sorted column 1:", column1)
@@ -22,6 +24,13 @@ func main() {
 		differenceSum += abs(column2[i] - column1[i])
 	}
 	fmt.Println("Sum of differences:", differenceSum)
+
+	// Part 2
+	similarityScore := 0
+	for _, number := range column1 {
+		similarityScore += number * countNumber(number, column2)
+	}
+	fmt.Println("Similarity score:", similarityScore)
 }
 
 func columns() ([]int, []int) {
@@ -41,4 +50,14 @@ func abs(n int) int {
 		return -n
 	}
 	return n
+}
+
+func countNumber(number int, numbers []int) int {
+	count := 0
+	for _, n := range numbers {
+		if n == number {
+			count++
+		}
+	}
+	return count
 }
