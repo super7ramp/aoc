@@ -5,3 +5,6 @@ out
 
 # Cargo stuff
 **/target/
+
+# Input files
+**/input*.txt
