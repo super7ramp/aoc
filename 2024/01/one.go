@@ -1,0 +1,44 @@
+package main
+
+import (
+	_ "embed"
+	"fmt"
+	"slices"
+	"strconv"
+	"strings"
+)
+
+//go:embed input.txt
+var input string
+
+func main() {
+	column1, column2 := columns()
+	slices.Sort(column1)
+	slices.Sort(column2)
+	fmt.Println("Sorted column 1:", column1)
+	fmt.Println("Sorted column 2:", column2)
+	differenceSum := 0
+	for i := range column1 {
+		differenceSum += abs(column2[i] - column1[i])
+	}
+	fmt.Println("Sum of differences:", differenceSum)
+}
+
+func columns() ([]int, []int) {
+	lines := strings.Split(input, "\n")
+	column1 := make([]int, len(lines))
+	column2 := make([]int, len(lines))
+	for i, line := range lines {
+		parts := strings.Split(line, "   ")
+		column1[i], _ = strconv.Atoi(parts[0])
+		column2[i], _ = strconv.Atoi(parts[1])
+	}
+	return column1, column2
+}
+
+func abs(n int) int {
+	if n < 0 {
+		return -n
+	}
+	return n
+}
