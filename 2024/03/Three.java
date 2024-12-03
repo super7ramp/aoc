@@ -47,7 +47,7 @@ private static void part2(final String input) {
     final Matcher mulMatcher = MUL_OP.matcher(input);
     long total = 0;
     while (mulMatcher.find()) {
-        final long mulStart = mulMatcher.start();
+        final int mulStart = mulMatcher.start();
         if (dontRanges.stream().noneMatch(range -> range.contains(mulStart))) {
             final long operand1 = Long.parseLong(mulMatcher.group(1));
             final long operand2 = Long.parseLong(mulMatcher.group(2));
