@@ -37,13 +37,12 @@ private static void part2(final String input) {
     final Matcher dontMatcher = DONT_OP.matcher(input);
     final var dontRanges = new ArrayList<Range>();
     while (dontMatcher.find()) {
-        final long dontStart = dontMatcher.start();
-        while (doMatcher.find() && doMatcher.start() < dontStart) {
-            // iterate
-        }
-        final long dontEnd = doMatcher.hasMatch() ? doMatcher.end() : input.length();
+        final int dontStart = dontMatcher.start();
+        doMatcher.region(dontStart, input.length());
+        final int dontEnd = doMatcher.find() ? doMatcher.end() : input.length();
         dontRanges.add(new Range(dontStart, dontEnd));
     }
+    System.out.println("Don't ranges: " + dontRanges);
 
     final Matcher mulMatcher = MUL_OP.matcher(input);
     long total = 0;
