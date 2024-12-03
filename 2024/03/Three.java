@@ -21,7 +21,7 @@ void main() throws IOException {
     part2(input);
 }
 
-private static void part1(final String input) {
+void part1(final String input) {
     final Matcher mulMatcher = MUL_OP.matcher(input);
     long total = 0;
     while (mulMatcher.find()) {
@@ -32,7 +32,7 @@ private static void part1(final String input) {
     System.out.println("Total part1: " + total);
 }
 
-private static void part2(final String input) {
+void part2(final String input) {
     final Matcher doMatcher = DO_OP.matcher(input);
     final Matcher dontMatcher = DONT_OP.matcher(input);
     final var dontRanges = new ArrayList<Range>();
