@@ -126,15 +126,11 @@ void main() throws IOException {
     final List<Update> validatedUpdates = manual.validatedUpdates();
     System.out.println("(Part 1) Validated updates: " + validatedUpdates);
 
-    final int validatedUpdatesMiddlePageSum = validatedUpdates.stream()
-            .mapToInt(Update::middlePage)
-            .reduce(0, Integer::sum);
+    final int validatedUpdatesMiddlePageSum = validatedUpdates.stream().mapToInt(Update::middlePage).sum();
     System.out.println("(Part 1) Sum of validated updates middle pages: " + validatedUpdatesMiddlePageSum);
 
     final List<Update> correctedUpdates = manual.correctedUpdates();
     System.out.println("(Part 2) Corrected updates: " + correctedUpdates);
-    final int correctedUpdatesMiddlePageSum = correctedUpdates.stream()
-            .mapToInt(Update::middlePage)
-            .reduce(0, Integer::sum);
+    final int correctedUpdatesMiddlePageSum = correctedUpdates.stream().mapToInt(Update::middlePage).sum();
     System.out.println("(Part 2) Sum of corrected updates middle pages: " + correctedUpdatesMiddlePageSum);
 }
