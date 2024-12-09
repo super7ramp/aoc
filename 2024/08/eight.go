@@ -4,7 +4,6 @@ import (
 	_ "embed"
 	"fmt"
 	"maps"
-	"math"
 	"slices"
 )
 
@@ -43,17 +42,16 @@ type AntennaAlignment struct {
 }
 
 func (aa *AntennaAlignment) antiNodes(maxX, maxY int) []Pos {
-	a := float64(aa.antenna2.y-aa.antenna1.y) / float64(aa.antenna2.x-aa.antenna1.x)
-	b := float64(aa.antenna1.y) - a*float64(aa.antenna1.x)
-	antiNodes := make([]Pos, 0)
-	for x := range maxX {
-		y := a*float64(x) + b
-		if y >= 0 && y < float64(maxY) {
-			_, frac := math.Modf(y)
-			if frac < 1e-5 {
-				antiNodes = append(antiNodes, Pos{x, int(y)})
-			}
-		}
+	dx := aa.antenna2.x - aa.antenna1.x
+	dy := aa.antenna2.y - aa.antenna1.y
+	antiNode1 := Pos{aa.antenna1.x - dx, aa.antenna1.y - dy}
+	antiNode2 := Pos{aa.antenna2.x + dx, aa.antenna2.y + dy}
+	var antiNodes []Pos
+	if antiNode1.x >= 0 && antiNode1.x <= maxX && antiNode1.y >= 0 && antiNode1.y <= maxY {
+		antiNodes = append(antiNodes, antiNode1)
+	}
+	if antiNode2.x >= 0 && antiNode2.x <= maxX && antiNode2.y >= 0 && antiNode2.y <= maxY {
+		antiNodes = append(antiNodes, antiNode2)
 	}
 	return antiNodes
 }
@@ -72,6 +70,9 @@ func AntennaMapFrom(input []byte) AntennaMap {
 		} else {
 			currentRow = append(currentRow, char)
 		}
+	}
+	if len(currentRow) > 0 {
+		tiles = append(tiles, currentRow)
 	}
 	return AntennaMap{tiles}
 }
@@ -101,16 +102,36 @@ func (m *AntennaMap) AntennaGroups() []AntennaGroup {
 	return slices.Collect(maps.Values(antenna))
 }
 
-//go:embed input-example.txt
+func (m *AntennaMap) PrintAntiNodes() {
+	antennaGroups := m.AntennaGroups()
+	uniqueAntiNodes := make(map[Pos]struct{})
+	for _, group := range antennaGroups {
+		fmt.Printf("Antenna %c\n", group.frequency)
+		fmt.Println("- Positions:", group.positions)
+		fmt.Println("- Alignments:", group.Alignments())
+		antiNodes := group.AntiNodes(m.Width(), m.Height())
+		fmt.Println("- Anti-nodes:", antiNodes)
+		for _, antiNode := range antiNodes {
+			uniqueAntiNodes[antiNode] = struct{}{}
+		}
+	}
+	fmt.Println(len(uniqueAntiNodes), "distinct anti-nodes:", slices.Collect(maps.Keys(uniqueAntiNodes)))
+	for y, row := range m.tiles {
+		for x, tile := range row {
+			if _, ok := uniqueAntiNodes[Pos{x, y}]; ok {
+				fmt.Print("#")
+			} else {
+				fmt.Print(string(tile))
+			}
+		}
+		fmt.Println()
+	}
+}
+
+//go:embed input.txt
 var input []byte
 
 func main() {
 	antennaMap := AntennaMapFrom(input)
-	antennaGroups := antennaMap.AntennaGroups()
-	for _, group := range antennaGroups {
-		fmt.Println("Antenna", group.frequency)
-		fmt.Println("- Positions:", group.positions)
-		fmt.Println("- Alignments:", group.Alignments())
-		fmt.Println("- Anti-nodes:", group.AntiNodes(antennaMap.Width(), antennaMap.Height()))
-	}
+	antennaMap.PrintAntiNodes()
 }
