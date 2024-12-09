@@ -3,7 +3,6 @@ package main
 import (
 	_ "embed"
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 )
@@ -12,25 +11,19 @@ type Operator byte
 
 const (
 	Addition       = Operator('+')
-	Subtraction    = Operator('-')
 	Multiplication = Operator('*')
-	Division       = Operator('/')
 	Concatenation  = Operator('|')
 )
 
-func (o *Operator) apply(a, b float64) float64 {
+func (o *Operator) apply(a, b int) int {
 	switch *o {
 	case Addition:
 		return a + b
-	case Subtraction:
-		return a - b
 	case Multiplication:
 		return a * b
-	case Division:
-		return a / b
 	case Concatenation:
-		concat := fmt.Sprintf("%d%d", int(a), int(b))
-		result, _ := strconv.ParseFloat(concat, 64)
+		concat := fmt.Sprintf("%d%d", a, b)
+		result, _ := strconv.Atoi(concat)
 		return result
 	}
 	panic("Invalid operator")
@@ -71,12 +64,12 @@ func (e *Equation) FindOperators(allowedOperators ...Operator) []Operator {
 
 // evaluate returns true if the equation evaluates to the result using the given operators.
 func (e *Equation) evaluate(operators []Operator) bool {
-	result := float64(e.operands[0])
+	result := e.operands[0]
 	for i, operand := range e.operands[1:] {
 		operator := operators[i]
-		result = operator.apply(result, float64(operand))
+		result = operator.apply(result, operand)
 	}
-	return math.Abs(result-float64(e.result)) < 1e-9
+	return result == e.result
 }
 
 func (e *Equation) DebugString(operators []Operator) string {
