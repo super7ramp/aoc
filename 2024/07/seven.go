@@ -15,6 +15,7 @@ const (
 	Subtraction    = Operator('-')
 	Multiplication = Operator('*')
 	Division       = Operator('/')
+	Concatenation  = Operator('|')
 )
 
 func (o *Operator) apply(a, b float64) float64 {
@@ -27,6 +28,10 @@ func (o *Operator) apply(a, b float64) float64 {
 		return a * b
 	case Division:
 		return a / b
+	case Concatenation:
+		concat := fmt.Sprintf("%d%d", int(a), int(b))
+		result, _ := strconv.ParseFloat(concat, 64)
+		return result
 	}
 	panic("Invalid operator")
 }
@@ -48,18 +53,16 @@ func EquationFrom(value string) *Equation {
 }
 
 // FindOperators returns the operators that make the equation valid, or nil if no such operators are found.
-func (e *Equation) FindOperators() []Operator {
-	elephantOperators := []Operator{Addition, Multiplication}
-
+func (e *Equation) FindOperators(allowedOperators ...Operator) []Operator {
 	testedOperators := make([]Operator, len(e.operands)-1)
-	combinationCount := pow(len(elephantOperators), len(testedOperators))
+	combinationCount := pow(len(allowedOperators), len(testedOperators))
 	for combination := range combinationCount {
 		for i := range testedOperators {
-			elephantOperatorIndex := combination / (pow(len(elephantOperators), i)) % len(elephantOperators)
-			testedOperators[i] = elephantOperators[elephantOperatorIndex]
+			elephantOperatorIndex := combination / (pow(len(allowedOperators), i)) % len(allowedOperators)
+			testedOperators[i] = allowedOperators[elephantOperatorIndex]
 		}
 		if e.evaluate(testedOperators) {
-			fmt.Println(e.DebugString(testedOperators))
+			//fmt.Println(e.DebugString(testedOperators))
 			return testedOperators
 		}
 	}
@@ -106,10 +109,10 @@ func EquationsFrom(value string) Equations {
 	return equations
 }
 
-func (e *Equations) TotalCalibrationResult() int {
+func (e *Equations) TotalCalibrationResult(allowedOperators ...Operator) int {
 	totalCalibrationResult := 0
 	for _, equation := range *e {
-		if operators := equation.FindOperators(); operators != nil {
+		if operators := equation.FindOperators(allowedOperators...); operators != nil {
 			totalCalibrationResult += equation.result
 		}
 	}
@@ -121,6 +124,9 @@ var input string
 
 func main() {
 	equations := EquationsFrom(input)
-	totalCalibrationResult := equations.TotalCalibrationResult()
+	totalCalibrationResult := equations.TotalCalibrationResult(Addition, Multiplication)
 	fmt.Println("(Part 1) Total calibration result:", totalCalibrationResult)
+
+	totalCalibrationResult = equations.TotalCalibrationResult(Addition, Multiplication, Concatenation)
+	fmt.Println("(Part 2) Total calibration result:", totalCalibrationResult)
 }
