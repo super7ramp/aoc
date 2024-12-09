@@ -80,6 +80,49 @@ func (m *PatrolMap) VisitGuardPositions() []Pos {
 	return visited
 }
 
+func (m *PatrolMap) PossibleObstructions() []Pos {
+	visitedPositions := m.Clone().VisitGuardPositions()
+	possibleObstructions := make([]Pos, 0)
+	for _, pos := range visitedPositions {
+		if m.DoesObstructionMakeGuardLoop(&pos) {
+			possibleObstructions = append(possibleObstructions, pos)
+		}
+	}
+	return possibleObstructions
+}
+
+func (m *PatrolMap) DoesObstructionMakeGuardLoop(obstruction *Pos) bool {
+	if m.guardPosition() == *obstruction {
+		return false
+	}
+
+	probeMap := m.Clone()
+	probeMap.setTileAt(obstruction, Obstacle)
+	visited := make(map[Pos][]Direction)
+
+	for guardPosition := probeMap.guardPosition(); probeMap.contains(&guardPosition); guardPosition = probeMap.nextGuardPosition(&guardPosition) {
+		previousGuardDirectionsOnThisPosition, seen := visited[guardPosition]
+		currentGuardDirectionOnThisPosition := Direction(probeMap.getTileAt(&guardPosition))
+		if seen && slices.Contains(previousGuardDirectionsOnThisPosition, currentGuardDirectionOnThisPosition) {
+			return true
+		}
+		if !seen {
+			previousGuardDirectionsOnThisPosition = make([]Direction, 0, 1)
+		}
+		previousGuardDirectionsOnThisPosition = append(previousGuardDirectionsOnThisPosition, currentGuardDirectionOnThisPosition)
+		visited[guardPosition] = previousGuardDirectionsOnThisPosition
+	}
+	return false
+}
+
+func (m *PatrolMap) Clone() *PatrolMap {
+	copiedTiles := make([][]byte, len(m.tiles))
+	for i, row := range m.tiles {
+		copiedTiles[i] = slices.Clone(row)
+	}
+	return &PatrolMap{copiedTiles}
+}
+
 func (m *PatrolMap) String() string {
 	sb := strings.Builder{}
 	for _, row := range m.tiles {
@@ -157,8 +200,8 @@ var input []byte
 
 func main() {
 	patrolMap := PatrolMapFrom(input)
-	visitedPositions := patrolMap.VisitGuardPositions()
-	fmt.Println("Guard visited", len(visitedPositions), "positions:", visitedPositions)
+	visitedPositions := patrolMap.Clone().VisitGuardPositions()
+	fmt.Println("(Part 1) Guard visited", len(visitedPositions), "positions:", visitedPositions)
 
 	occurrences := make(map[Pos]struct{})
 	distinctPositionCount := 0
@@ -168,5 +211,18 @@ func main() {
 			occurrences[pos] = struct{}{}
 		}
 	}
-	fmt.Println("Guard visited", distinctPositionCount, "distinct positions")
+	fmt.Println("(Part 1) Guard visited", distinctPositionCount, "distinct positions")
+
+	possibleObstructions := patrolMap.PossibleObstructions()
+	fmt.Println("(Part 2) Possible obstructions:", possibleObstructions)
+
+	clear(occurrences)
+	distinctPossibleObstructionCount := 0
+	for _, pos := range possibleObstructions {
+		if _, seen := occurrences[pos]; !seen {
+			distinctPossibleObstructionCount++
+			occurrences[pos] = struct{}{}
+		}
+	}
+	fmt.Println("(Part 2)", distinctPossibleObstructionCount, "distinct possible obstructions")
 }
