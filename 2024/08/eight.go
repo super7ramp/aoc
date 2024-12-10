@@ -37,6 +37,17 @@ func (group *AntennaGroup) AntiNodes(maxX, maxY int) []Pos {
 	return slices.Collect(maps.Keys(antiNodes))
 }
 
+func (group *AntennaGroup) AntiNodesWithResonantHarmonics(maxX, maxY int) []Pos {
+	alignments := group.Alignments()
+	antiNodes := make(map[Pos]struct{})
+	for _, alignment := range alignments {
+		for _, antiNode := range alignment.antiNodesWithResonantHarmonics(maxX, maxY) {
+			antiNodes[antiNode] = struct{}{}
+		}
+	}
+	return slices.Collect(maps.Keys(antiNodes))
+}
+
 type AntennaAlignment struct {
 	antenna1, antenna2 Pos
 }
@@ -54,6 +65,34 @@ func (aa *AntennaAlignment) antiNodes(maxX, maxY int) []Pos {
 		antiNodes = append(antiNodes, antiNode2)
 	}
 	return antiNodes
+}
+
+func (aa *AntennaAlignment) antiNodesWithResonantHarmonics(maxX, maxY int) []Pos {
+	dx := aa.antenna2.x - aa.antenna1.x
+	dy := aa.antenna2.y - aa.antenna1.y
+
+	divisor := gcd(dx, dy)
+	dx /= divisor
+	dy /= divisor
+
+	var antiNodes []Pos
+	for pos := (Pos{aa.antenna1.x + dx, aa.antenna1.y + dy}); pos.x >= 0 && pos.x <= maxX && pos.y >= 0 && pos.y <= maxY; pos = (Pos{pos.x + dx, pos.y + dy}) {
+		antiNodes = append(antiNodes, pos)
+	}
+	for pos := (Pos{aa.antenna1.x - dx, aa.antenna1.y - dy}); pos.x >= 0 && pos.x <= maxX && pos.y >= 0 && pos.y <= maxY; pos = (Pos{pos.x - dx, pos.y - dy}) {
+		antiNodes = append(antiNodes, pos)
+	}
+
+	return antiNodes
+}
+
+func gcd(a, b int) int {
+	for b != 0 {
+		t := b
+		b = a % b
+		a = t
+	}
+	return a
 }
 
 type AntennaMap struct {
@@ -128,10 +167,37 @@ func (m *AntennaMap) PrintAntiNodes() {
 	}
 }
 
+func (m *AntennaMap) PrintAntiNodesWithResonantHarmonics() {
+	antennaGroups := m.AntennaGroups()
+	uniqueAntiNodes := make(map[Pos]struct{})
+	for _, group := range antennaGroups {
+		fmt.Printf("Antenna %c\n", group.frequency)
+		fmt.Println("- Positions:", group.positions)
+		fmt.Println("- Alignments:", group.Alignments())
+		antiNodes := group.AntiNodesWithResonantHarmonics(m.Width()-1, m.Height()-1)
+		fmt.Println("- Anti-nodes with resonant harmonics:", antiNodes)
+		for _, antiNode := range antiNodes {
+			uniqueAntiNodes[antiNode] = struct{}{}
+		}
+	}
+	fmt.Println(len(uniqueAntiNodes), "distinct anti-nodes with resonant harmonics:", slices.Collect(maps.Keys(uniqueAntiNodes)))
+	for y, row := range m.tiles {
+		for x, tile := range row {
+			if _, ok := uniqueAntiNodes[Pos{x, y}]; ok {
+				fmt.Print("#")
+			} else {
+				fmt.Print(string(tile))
+			}
+		}
+		fmt.Println()
+	}
+}
+
 //go:embed input.txt
 var input []byte
 
 func main() {
 	antennaMap := AntennaMapFrom(input)
 	antennaMap.PrintAntiNodes()
+	antennaMap.PrintAntiNodesWithResonantHarmonics()
 }
