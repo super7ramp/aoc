@@ -76,7 +76,7 @@ func (aa *AntennaAlignment) antiNodesWithResonantHarmonics(maxX, maxY int) []Pos
 	dy /= divisor
 
 	var antiNodes []Pos
-	for pos := (Pos{aa.antenna1.x + dx, aa.antenna1.y + dy}); pos.x >= 0 && pos.x <= maxX && pos.y >= 0 && pos.y <= maxY; pos = (Pos{pos.x + dx, pos.y + dy}) {
+	for pos := (Pos{aa.antenna1.x, aa.antenna1.y}); pos.x >= 0 && pos.x <= maxX && pos.y >= 0 && pos.y <= maxY; pos = (Pos{pos.x + dx, pos.y + dy}) {
 		antiNodes = append(antiNodes, pos)
 	}
 	for pos := (Pos{aa.antenna1.x - dx, aa.antenna1.y - dy}); pos.x >= 0 && pos.x <= maxX && pos.y >= 0 && pos.y <= maxY; pos = (Pos{pos.x - dx, pos.y - dy}) {
