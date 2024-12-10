@@ -109,7 +109,7 @@ func (m *AntennaMap) PrintAntiNodes() {
 		fmt.Printf("Antenna %c\n", group.frequency)
 		fmt.Println("- Positions:", group.positions)
 		fmt.Println("- Alignments:", group.Alignments())
-		antiNodes := group.AntiNodes(m.Width(), m.Height())
+		antiNodes := group.AntiNodes(m.Width()-1, m.Height()-1)
 		fmt.Println("- Anti-nodes:", antiNodes)
 		for _, antiNode := range antiNodes {
 			uniqueAntiNodes[antiNode] = struct{}{}
