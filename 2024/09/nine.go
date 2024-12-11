@@ -39,8 +39,10 @@ func (d *Disk) String() string {
 		sb.WriteString(strings.Repeat(strconv.Itoa(file.id), int(file.size)))
 		sb.WriteString(strings.Repeat(".", int(d.freeSpaces[i])))
 	}
-	lastFile := d.files[len(d.files)-1]
-	sb.WriteString(strings.Repeat(strconv.Itoa(lastFile.id), int(lastFile.size)))
+	if len(d.files) > len(d.freeSpaces) {
+		lastFile := d.files[len(d.files)-1]
+		sb.WriteString(strings.Repeat(strconv.Itoa(lastFile.id), int(lastFile.size)))
+	}
 	return sb.String()
 }
 
@@ -67,25 +69,62 @@ func (d *Disk) Compact() {
 	}
 }
 
+func (d *Disk) CompactFiles() {
+	for fileToMoveIndex := len(d.files) - 1; fileToMoveIndex >= 0; fileToMoveIndex-- {
+		fileToMove := d.files[fileToMoveIndex]
+		for freeSpaceIndex := 0; freeSpaceIndex < fileToMoveIndex; freeSpaceIndex++ {
+			freeSpace := d.freeSpaces[freeSpaceIndex]
+			if freeSpace >= fileToMove.size {
+
+				// Remove file from its current position and update space around the position
+				d.files = slices.Delete(d.files, fileToMoveIndex, fileToMoveIndex+1)
+				d.freeSpaces[fileToMoveIndex-1] += fileToMove.size
+				if len(d.freeSpaces) > len(d.files) {
+					// Merge contiguous free spaces
+					d.freeSpaces[fileToMoveIndex-1] += d.freeSpaces[fileToMoveIndex]
+					d.freeSpaces = slices.Delete(d.freeSpaces, fileToMoveIndex, fileToMoveIndex+1)
+				}
+
+				// Insert file in the free space
+				d.files = slices.Insert(d.files, freeSpaceIndex+1, fileToMove)
+				d.freeSpaces[freeSpaceIndex] = 0
+				d.freeSpaces = slices.Insert(d.freeSpaces, freeSpaceIndex+1, freeSpace-fileToMove.size)
+
+				fileToMoveIndex++
+				//fmt.Println(d.String())
+				break
+			}
+		}
+	}
+}
+
 func (d *Disk) Checksum() int {
 	checksum := 0
 	blockPosition := 0
-	for _, file := range d.files {
+	for i, file := range d.files {
 		for range file.size {
 			checksum += blockPosition * file.id
 			blockPosition += 1
+		}
+		if i < len(d.freeSpaces) {
+			blockPosition += int(d.freeSpaces[i])
 		}
 	}
 	return checksum
 }
 
-//go:embed input-example.txt
+//go:embed input.txt
 var input string
 
 func main() {
 	disk := ParseDisk(input)
-	fmt.Println(disk)
+
 	disk.Compact()
-	fmt.Println(disk)
-	fmt.Println("Checksum", disk.Checksum())
+	fmt.Println("(Part 1) Compacted disk:", disk)
+	fmt.Println("(Part 1) Checksum:", disk.Checksum())
+
+	disk = ParseDisk(input)
+	disk.CompactFiles()
+	fmt.Println("(Part 2) Compacted disk:", disk)
+	fmt.Println("(Part 2) Checksum:", disk.Checksum())
 }
