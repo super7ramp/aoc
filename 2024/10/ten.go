@@ -17,6 +17,10 @@ func (p *Pos) AdjacentPositions() []Pos {
 
 type Trail []Pos
 
+func (t Trail) Arrival() Pos {
+	return t[len(t)-1]
+}
+
 type TrailHead struct {
 	trails []Trail
 }
@@ -28,7 +32,7 @@ func (t *TrailHead) AddTrail(trail Trail) {
 func (t *TrailHead) Score() int {
 	distinctArrivals := make(map[Pos]struct{})
 	for _, trail := range t.trails {
-		distinctArrivals[trail[len(trail)-1]] = struct{}{}
+		distinctArrivals[trail.Arrival()] = struct{}{}
 	}
 	return len(distinctArrivals)
 }
@@ -38,9 +42,14 @@ func (t *TrailHead) Rating() int {
 }
 
 type TopographicMap struct {
-	tiles []byte
-	width int
+	levels []byte
+	width  int
 }
+
+const (
+	StartLevel = 0
+	EndLevel   = 9
+)
 
 func ParseTopographicMap(input []byte) *TopographicMap {
 	width := bytes.IndexByte(input, '\n')
@@ -51,8 +60,8 @@ func (t *TopographicMap) TrailHeads() map[Pos]TrailHead {
 	trailHeads := make(map[Pos]TrailHead)
 	for x := 0; x < t.width; x++ {
 		for y := 0; y < t.Height(); y++ {
-			if t.Get(x, y) == 0 {
-				trails := t.nextTrails(x, y)
+			if t.Level(x, y) == StartLevel {
+				trails := t.trailsFrom(x, y)
 				for _, trail := range trails {
 					if trailHead, ok := trailHeads[Pos{x, y}]; ok {
 						trailHead.AddTrail(trail)
@@ -67,10 +76,10 @@ func (t *TopographicMap) TrailHeads() map[Pos]TrailHead {
 	return trailHeads
 }
 
-func (t *TopographicMap) nextTrails(x, y int) []Trail {
+func (t *TopographicMap) trailsFrom(x, y int) []Trail {
 	currentPos := Pos{x, y}
-	current := t.Get(x, y)
-	if current == 9 {
+	currentLevel := t.Level(x, y)
+	if currentLevel == EndLevel {
 		return []Trail{[]Pos{currentPos}}
 	}
 	var nextTrails []Trail
@@ -81,8 +90,8 @@ func (t *TopographicMap) nextTrails(x, y int) []Trail {
 		if nextPos.y < 0 || nextPos.y >= t.Height() {
 			continue
 		}
-		if t.Get(nextPos.x, nextPos.y) == current+1 {
-			subNextTrails := t.nextTrails(nextPos.x, nextPos.y)
+		if t.Level(nextPos.x, nextPos.y) == currentLevel+1 {
+			subNextTrails := t.trailsFrom(nextPos.x, nextPos.y)
 			for _, subNextTrail := range subNextTrails {
 				positions := []Pos{{x, y}}
 				positions = append(positions, subNextTrail...)
@@ -94,8 +103,8 @@ func (t *TopographicMap) nextTrails(x, y int) []Trail {
 	return nextTrails
 }
 
-func (t *TopographicMap) Get(x, y int) byte {
-	return t.tiles[y*(t.width+1)+x] - '0'
+func (t *TopographicMap) Level(x, y int) byte {
+	return t.levels[y*(t.width+1)+x] - '0'
 }
 
 func (t *TopographicMap) Width() int {
@@ -103,11 +112,11 @@ func (t *TopographicMap) Width() int {
 }
 
 func (t *TopographicMap) Height() int {
-	return len(t.tiles) / t.width
+	return len(t.levels) / t.width
 }
 
 func (t *TopographicMap) String() string {
-	return string(t.tiles)
+	return string(t.levels)
 }
 
 //go:embed input.txt
