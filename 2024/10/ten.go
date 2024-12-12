@@ -5,7 +5,6 @@ import (
 	_ "embed"
 	"fmt"
 	"maps"
-	"slices"
 )
 
 type Pos struct {
@@ -18,6 +17,26 @@ func (p *Pos) AdjacentPositions() []Pos {
 
 type Trail []Pos
 
+type TrailHead struct {
+	trails []Trail
+}
+
+func (t *TrailHead) AddTrail(trail Trail) {
+	t.trails = append(t.trails, trail)
+}
+
+func (t *TrailHead) Score() int {
+	distinctArrivals := make(map[Pos]struct{})
+	for _, trail := range t.trails {
+		distinctArrivals[trail[len(trail)-1]] = struct{}{}
+	}
+	return len(distinctArrivals)
+}
+
+func (t *TrailHead) Rating() int {
+	return len(t.trails)
+}
+
 type TopographicMap struct {
 	tiles []byte
 	width int
@@ -28,17 +47,18 @@ func ParseTopographicMap(input []byte) *TopographicMap {
 	return &TopographicMap{input, width}
 }
 
-func (t *TopographicMap) TrailHeads() map[Pos][]Pos {
-	trailHeads := make(map[Pos][]Pos)
+func (t *TopographicMap) TrailHeads() map[Pos]TrailHead {
+	trailHeads := make(map[Pos]TrailHead)
 	for x := 0; x < t.width; x++ {
 		for y := 0; y < t.Height(); y++ {
 			if t.Get(x, y) == 0 {
 				trails := t.nextTrails(x, y)
 				for _, trail := range trails {
-					distinctArrivals := trailHeads[Pos{x, y}]
-					if !slices.Contains(distinctArrivals, trail[len(trail)-1]) {
-						distinctArrivals = append(distinctArrivals, trail[len(trail)-1])
-						trailHeads[Pos{x, y}] = distinctArrivals
+					if trailHead, ok := trailHeads[Pos{x, y}]; ok {
+						trailHead.AddTrail(trail)
+						trailHeads[Pos{x, y}] = trailHead
+					} else {
+						trailHeads[Pos{x, y}] = TrailHead{[]Trail{trail}}
 					}
 				}
 			}
@@ -99,8 +119,14 @@ func main() {
 	trailHeads := tm.TrailHeads()
 	fmt.Println("(Part 1) Trail heads:", trailHeads)
 	scoreSum := 0
-	for arrivals := range maps.Values(trailHeads) {
-		scoreSum += len(arrivals)
+	for trailHead := range maps.Values(trailHeads) {
+		scoreSum += trailHead.Score()
 	}
 	fmt.Println("(Part 1) Score sum:", scoreSum)
+
+	ratingSum := 0
+	for trailHead := range maps.Values(trailHeads) {
+		ratingSum += trailHead.Rating()
+	}
+	fmt.Println("(Part 2) Rating sum:", ratingSum)
 }
