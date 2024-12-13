@@ -23,7 +23,9 @@ func StonesFrom(value string) Stones {
 
 func (s *Stones) Blink(times int) {
 	rules := []Rule{IfZeroThenOne, IfEvenNumberOfDigitsThenTwoStones, ElseMultiplyBy2024}
-	for range times {
+	for i := range times {
+		fmt.Println("Current length: ", len(*s))
+		fmt.Println("Blink", i+1)
 		for i := 0; i < len(*s); i++ {
 			for _, rule := range rules {
 				if j, applied := rule(i, s); applied {
@@ -76,4 +78,6 @@ func main() {
 	fmt.Println("Initial stones:", stones)
 	stones.Blink(25)
 	fmt.Println(len(stones), "stones after blinking 25 times")
+	stones.Blink(50)
+	fmt.Println(len(stones), "stones after blinking 75 times")
 }
