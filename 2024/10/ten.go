@@ -58,19 +58,21 @@ func ParseTopographicMap(input []byte) *TopographicMap {
 
 func (t *TopographicMap) TrailHeads() map[Pos]TrailHead {
 	trailHeads := make(map[Pos]TrailHead)
-	for x := 0; x < t.width; x++ {
-		for y := 0; y < t.Height(); y++ {
-			if t.Level(x, y) == StartLevel {
-				trails := t.trailsFrom(x, y)
-				for _, trail := range trails {
-					if trailHead, ok := trailHeads[Pos{x, y}]; ok {
-						trailHead.AddTrail(trail)
-						trailHeads[Pos{x, y}] = trailHead
-					} else {
-						trailHeads[Pos{x, y}] = TrailHead{[]Trail{trail}}
-					}
+	for x := range t.width {
+		for y := range t.Height() {
+			if t.LevelAt(x, y) != StartLevel {
+				continue
+			}
+			trails := t.trailsFrom(x, y)
+			for _, trail := range trails {
+				if trailHead, exists := trailHeads[Pos{x, y}]; exists {
+					trailHead.AddTrail(trail)
+					trailHeads[Pos{x, y}] = trailHead
+				} else {
+					trailHeads[Pos{x, y}] = TrailHead{[]Trail{trail}}
 				}
 			}
+
 		}
 	}
 	return trailHeads
@@ -78,11 +80,11 @@ func (t *TopographicMap) TrailHeads() map[Pos]TrailHead {
 
 func (t *TopographicMap) trailsFrom(x, y int) []Trail {
 	currentPos := Pos{x, y}
-	currentLevel := t.Level(x, y)
+	currentLevel := t.LevelAt(x, y)
 	if currentLevel == EndLevel {
 		return []Trail{[]Pos{currentPos}}
 	}
-	var nextTrails []Trail
+	var trails []Trail
 	for _, nextPos := range currentPos.AdjacentPositions() {
 		if nextPos.x < 0 || nextPos.x >= t.width {
 			continue
@@ -90,20 +92,20 @@ func (t *TopographicMap) trailsFrom(x, y int) []Trail {
 		if nextPos.y < 0 || nextPos.y >= t.Height() {
 			continue
 		}
-		if t.Level(nextPos.x, nextPos.y) == currentLevel+1 {
-			subNextTrails := t.trailsFrom(nextPos.x, nextPos.y)
-			for _, subNextTrail := range subNextTrails {
-				positions := []Pos{{x, y}}
-				positions = append(positions, subNextTrail...)
-				nextTrail := Trail(positions)
-				nextTrails = append(nextTrails, nextTrail)
+		if t.LevelAt(nextPos.x, nextPos.y) == currentLevel+1 {
+			subTrails := t.trailsFrom(nextPos.x, nextPos.y)
+			for _, subTrail := range subTrails {
+				positions := []Pos{currentPos}
+				positions = append(positions, subTrail...)
+				trail := Trail(positions)
+				trails = append(trails, trail)
 			}
 		}
 	}
-	return nextTrails
+	return trails
 }
 
-func (t *TopographicMap) Level(x, y int) byte {
+func (t *TopographicMap) LevelAt(x, y int) byte {
 	return t.levels[y*(t.width+1)+x] - '0'
 }
 
