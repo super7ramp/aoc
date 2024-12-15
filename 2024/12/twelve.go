@@ -74,12 +74,11 @@ func (garden Garden) Regions() []Region {
 	}
 	var regions []Region
 	for len(positionsToVisit) > 0 {
-		current := positionsToVisit[0]
+		plant := garden.PlantAt(positionsToVisit[0])
+		region := Region{plant, []Pos{positionsToVisit[0]}}
 		positionsToVisit = slices.Delete(positionsToVisit, 0, 1)
-		plant := garden.PlantAt(current)
-		region := Region{plant, []Pos{current}}
-		for j := 0; j < len(region.plots); j++ {
-			current = region.plots[j]
+		for i := 0; i < len(region.plots); i++ {
+			current := region.plots[i]
 			for _, adjacent := range current.AdjacentPositions() {
 				if !adjacent.IsWithin(garden.Width(), garden.Height()) || garden.PlantAt(adjacent) != plant {
 					continue
