@@ -12,12 +12,31 @@ type Pos struct {
 }
 
 func (p Pos) AdjacentPositions() []Pos {
-	return []Pos{
-		{p.x + 1, p.y}, // right
-		{p.x, p.y + 1}, // down
-		{p.x - 1, p.y}, // left
-		{p.x, p.y - 1}, // up
-	}
+	return []Pos{p.Right(), p.Down(), p.Left(), p.Up()}
+}
+
+func (p Pos) DiagonalPositions() []Pos {
+	return []Pos{p.Right().Up(), p.Right().Down(), p.Left().Down(), p.Left().Up()}
+}
+
+func (p Pos) BorderPositions() []Pos {
+	return append(p.AdjacentPositions(), p.DiagonalPositions()...)
+}
+
+func (p Pos) Right() Pos {
+	return Pos{p.x + 1, p.y}
+}
+
+func (p Pos) Down() Pos {
+	return Pos{p.x, p.y + 1}
+}
+
+func (p Pos) Left() Pos {
+	return Pos{p.x - 1, p.y}
+}
+
+func (p Pos) Up() Pos {
+	return Pos{p.x, p.y - 1}
 }
 
 func (p Pos) IsWithin(width, height int) bool {
@@ -47,8 +66,28 @@ func (r Region) Perimeter() int {
 	return perimeter
 }
 
+func (r Region) SideCount() int {
+	// We actually count corners, because in a polygon with n sides, there are n corners, and corners are easier to count.
+	cornerCount := 0
+	for _, plot := range r.plots {
+		if slices.Contains(r.plots, plot.Up()) && slices.Contains(r.plots, plot.Left()) {
+			if !slices.Contains(r.plots, plot.Up().Left()) {
+				cornerCount++
+			}
+		} else {
+			cornerCount++
+		}
+	}
+
+	return cornerCount
+}
+
 func (r Region) FencingPrice() int {
 	return r.Perimeter() * r.Area()
+}
+
+func (r Region) FencingPriceWithBulkDiscount() int {
+	return r.SideCount() * r.Area()
 }
 
 func (r Region) String() string {
@@ -106,7 +145,7 @@ func (garden Garden) Height() int {
 	return len(garden)
 }
 
-//go:embed input.txt
+//go:embed input-example.txt
 var input string
 
 func main() {
@@ -119,4 +158,10 @@ func main() {
 	}
 	fmt.Println("(Part 1) The total fencing price is", totalFencingPrice)
 
+	totalFencingPrice = 0
+	for _, region := range garden.Regions() {
+		fmt.Printf("(Part 2) A region of %c plants with price %d * %d = %d.\n", region.plant, region.Area(), region.SideCount(), region.FencingPriceWithBulkDiscount())
+		totalFencingPrice += region.FencingPriceWithBulkDiscount()
+	}
+	fmt.Println("(Part 2) The total fencing price with bulk discount is", totalFencingPrice)
 }
