@@ -70,11 +70,9 @@ func (r Rotations) CountCrossedZeroFrom(initialOrientation Orientation) int {
 func countCrossedZero(initialOrientation int, rotation Rotation) int {
 	crossedZeroCount := abs(int(rotation)) / 100
 	rotationLeftover := int(rotation) % 100
-	if rotationLeftover != 0 {
-		unboundOrientation := initialOrientation + rotationLeftover
-		if (unboundOrientation <= 0 && initialOrientation != 0) || unboundOrientation >= 100 {
-			crossedZeroCount++
-		}
+	unboundOrientation := initialOrientation + rotationLeftover
+	if (unboundOrientation <= 0 && initialOrientation != 0) || unboundOrientation >= 100 {
+		crossedZeroCount++
 	}
 	return crossedZeroCount
 }

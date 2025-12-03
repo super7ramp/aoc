@@ -6,5 +6,11 @@ out
 # Cargo stuff
 **/target/
 
+# Clojure stuff
+.cpcache
+.clj-kondo
+.nrepl-port
+deps.edn
+
 # Input files
 **/input*.txt
