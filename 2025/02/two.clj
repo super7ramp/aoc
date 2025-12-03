@@ -10,7 +10,7 @@
   (->> (str/split input #",\n?")
        (map parse-range)))
 
-(defn- has-repeated-substrings [string times]
+(defn- has-repeated-substrings? [string times]
   (if (not (zero? (rem (count string) times)))
     false
     (let [part-length (quot (count string) times)
@@ -19,13 +19,13 @@
       (apply = parts))))
 
 (defn is-invalid-id? [id]
-  (has-repeated-substrings (str id) 2))
+  (has-repeated-substrings? (str id) 2))
 
 (defn is-really-invalid-id? [id]
   (let [id-string (str id), id-string-length (count id-string)]
     (loop [times 2]
       (cond
-        (has-repeated-substrings id-string times) true
+        (has-repeated-substrings? id-string times) true
         (< times id-string-length) (recur (inc times))))))
 
 (def input (slurp "input.txt"))
