@@ -18,9 +18,10 @@
         (then-compare a b)
         comparison))))
 
+(defrecord IndexedBattery [index joltage])
+
 (def ^:private comparing-battery-by-joltage-then-by-index-reversed
-  (let [index first, joltage second]
-    (comparing {:by joltage :then (comparing {:by index :reversed? true})})))
+  (comparing {:by :joltage :then (comparing {:by :index :reversed? true})}))
 
 (defn- pow [base exp]
   (reduce * (repeat exp base)))
@@ -31,14 +32,14 @@
       (if (== selected-count turned-on-battery-count)
         joltage
         (let [search-end (- battery-count (- turned-on-battery-count selected-count 1))
-              [joltest-battery-index joltest-battery] (->> (subvec batteries search-start search-end)
-                                                           (map-indexed vector)
-                                                           (sort comparing-battery-by-joltage-then-by-index-reversed)
-                                                           last)
-              added-joltage (* joltest-battery (pow 10 (- turned-on-battery-count selected-count 1)))]
+              joltest-battery (->> (subvec batteries search-start search-end)
+                                   (map-indexed ->IndexedBattery)
+                                   (sort comparing-battery-by-joltage-then-by-index-reversed)
+                                   last)
+              added-joltage (* (:joltage joltest-battery) (pow 10 (- turned-on-battery-count selected-count 1)))]
           (recur (inc selected-count)
                  (+ joltage added-joltage)
-                 (+ search-start joltest-battery-index 1)))))))
+                 (+ search-start (:index joltest-battery) 1)))))))
 
 (defn find-max-total-joltage
   ([banks]
