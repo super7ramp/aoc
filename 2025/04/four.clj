@@ -47,10 +47,12 @@
   [grid [row column]]
   (get-in grid [(dec row) (dec column)]))
 
-(defn- adjacents
+(def
+  ^{:private  true
+    :arglists '([grid pos])}
+  adjacents
   "Returns a vector of the contents of all adjacent cells to the given position."
-  [grid pos]
-  ((juxt top top-right right bottom-right bottom bottom-left left top-left) grid pos))
+  (juxt top top-right right bottom-right bottom bottom-left left top-left))
 
 (defn- roll-of-paper?
   "If given a grid and a position, checks if the character at the given position represents a roll of paper (@).
@@ -105,4 +107,4 @@
   (println "Part 1:")
   (println "Accessible rolls of paper:" (count (accessible-rolls-of-paper grid)))
   (println "Part 2:")
-  (println "Removable rolls of paper:" (removable-rolls-of-paper-count grid)))
+  (println "Removable rolls of paper:" (time (removable-rolls-of-paper-count grid))))
