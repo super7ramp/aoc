@@ -27,19 +27,19 @@
   (reduce * (repeat exp base)))
 
 (defn- find-max-joltage [batteries turned-on-battery-count]
-  (let [battery-count (count batteries)]
+  (let [battery-count (count batteries)
+        indexed-batteries (into [] (map-indexed ->IndexedBattery) batteries)]
     (loop [selected-count 0, joltage 0, search-start 0]
       (if (== selected-count turned-on-battery-count)
         joltage
         (let [search-end (- battery-count (- turned-on-battery-count selected-count 1))
-              joltest-battery (->> (subvec batteries search-start search-end)
-                                   (map-indexed ->IndexedBattery)
+              joltest-battery (->> (subvec indexed-batteries search-start search-end)
                                    (sort comparing-battery-by-joltage-then-by-index-reversed)
                                    last)
               added-joltage (* (:joltage joltest-battery) (pow 10 (- turned-on-battery-count selected-count 1)))]
           (recur (inc selected-count)
                  (+ joltage added-joltage)
-                 (+ search-start (:index joltest-battery) 1)))))))
+                 (inc (:index joltest-battery))))))))
 
 (defn find-max-total-joltage
   ([banks]
