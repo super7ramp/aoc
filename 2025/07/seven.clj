@@ -45,7 +45,7 @@
                         (dissoc previous-manifold :starts)
                         starts))))))
 
-  ([{grid :grid, starts :starts, splits :splits, :as manifold} start]
+  ([{:keys [grid starts splits] :as manifold} start]
    (let [bottom-pos (bottom start)
          bottom-content (get-in grid bottom-pos)]
      (cond
@@ -68,12 +68,12 @@
                     bottom-right-exists (conj bottom-right-pos))
           :splits (inc splits)})
 
-       ; else outside of grid or existing beam, nothing to add
        :else
+       ; outside of grid or existing beam, nothing to add
        manifold))))
 
 (def input (slurp "input.txt"))
 
 (let [manifold (parse-manifold input)]
   (println "Part 1:")
-  (println "Total splits: " (:splits (propagate-beam manifold))))
+  (println "Total splits:" (:splits (propagate-beam manifold))))
