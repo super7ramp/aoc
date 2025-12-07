@@ -114,12 +114,13 @@
   (if (= :vertical writing-mode)
     (let [width (apply max (map count rows))]
       (->> (range width)
-           (mapv (fn [char-index] (->> rows
-                                (filter #(< char-index (count %)))
-                                (map #(subs % char-index (inc char-index)))
-                                (remove str/blank?)
-                                (apply str)
-                                parse-long)))))
+           (mapv (fn [char-index]
+                   (->> rows
+                        (filter #(< char-index (count %)))
+                        (map #(subs % char-index (inc char-index)))
+                        (remove str/blank?)
+                        (apply str)
+                        parse-long)))))
     (->> rows
          (map str/trim)
          (map parse-long))))
